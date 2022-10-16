@@ -8,8 +8,10 @@ packages = [{include = "hse_mlops_hw1"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-Flask = "^2.2.2"
+Flask = "2.1.2"
 scikit-learn = "^1.1.2"
+flask-restx = "^0.5.1"
+Werkzeug = "2.1.2"
 
 
 [build-system]

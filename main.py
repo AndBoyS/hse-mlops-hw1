@@ -1,18 +1,16 @@
 from flask import Flask
+from flask_restx import Api, Resource
 
-# Flask constructor takes the name of
-# current module (__name__) as argument.
 app = Flask(__name__)
+api = Api(app)
 
 
-# The route() function of the Flask class is a decorator,
-# which tells the application which URL should call
-# the associated function.
-@app.route('/')
-def hello_world():
-    return 'Hello World'
+@api.route('/hello')
+class HelloWorld(Resource):
+    def get(self):
+        return {'hello': 'world'}
 
 
 # main driver function
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
