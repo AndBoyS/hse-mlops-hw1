@@ -1,10 +1,11 @@
+from pathlib import Path
 from typing import *
 import pandas as pd
+import joblib
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import make_pipeline
-from sklearn.exceptions import NotFittedError
 from flask import Flask
 from flask_restx import Api, Resource
 from werkzeug.datastructures import FileStorage
@@ -16,6 +17,9 @@ api = Api(app)
 upload_parser = api.parser()
 upload_parser.add_argument('file', location='files',
                            type=FileStorage, required=True)
+
+model_dir = Path('models')
+model_dir.mkdir(exist_ok=True)
 
 feature_columns = ['age', 'embarked', 'pclass', 'sex']
 target_column = 'survived'
@@ -40,6 +44,7 @@ class Train(Resource):
         data = pd.read_excel(args['file'])
         X, y = self.prepare_data(data)
         model.fit(X, y)
+        joblib.dump(model, model_dir / 'model.pkl')
         return 'Training successful'
 
     @staticmethod
@@ -54,6 +59,12 @@ class Train(Resource):
 class Predict(Resource):
     @api.doc(params={'file': f'Excel file with columns: {*feature_columns,}'})
     def post(self):
+
+        model_fp = model_dir / 'model.pkl'
+        if not model_fp.exists():
+            return 400, "Model hasn't been fitted"
+        model = joblib.load(model_fp)
+
         args = upload_parser.parse_args()
         data = pd.read_excel(args['file'])
         X = data[feature_columns]
@@ -61,11 +72,7 @@ class Predict(Resource):
         if X.isna().sum().sum():
             return 400, 'Nans found in data'
 
-        try:
-            pred = model.predict(X)
-        except NotFittedError:
-            return 400, "Model hasn't been fitted"
-
+        pred = model.predict(X)
         return {'prediction': pred.tolist()}
 
 
