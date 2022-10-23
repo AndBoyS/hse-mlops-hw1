@@ -2,7 +2,8 @@ from pathlib import Path
 from typing import *
 import pandas as pd
 import joblib
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import make_pipeline
@@ -25,26 +26,52 @@ feature_columns = ['age', 'embarked', 'pclass', 'sex']
 target_column = 'survived'
 all_columns = feature_columns + [target_column]
 
-model = make_pipeline(
-    ColumnTransformer([
-        ('ohe', OneHotEncoder(), ['pclass', 'embarked']),
-        ('binarizer', OrdinalEncoder(), ['sex'])
-        ],
-        remainder='passthrough'),
-    LinearRegression()
-)
+model_dict = {
+    'logistic_regression': LogisticRegression,
+    'svm': LinearSVC,
+}
+
+upload_parser.add_argument('model_type',
+                           required=True,
+                           location='args',
+                           choices=list(model_dict.keys()),
+                           help='Bad choice: {error_msg}')
+
+
+def create_model(model_type: str):
+    """
+    Создать пайплайн модели
+
+    :param model_type: тип модели, logistic_regression или svm
+    :return:
+    """
+    assert model_type in model_dict
+
+    return make_pipeline(
+        ColumnTransformer([
+            ('ohe', OneHotEncoder(), ['pclass', 'embarked']),
+            ('binarizer', OrdinalEncoder(), ['sex'])
+            ],
+            remainder='passthrough'),
+        model_dict[model_type]()
+    )
 
 
 @api.route('/train', methods=['PUT'])
 @api.expect(upload_parser)
 class Train(Resource):
-    @api.doc(params={'file': f'Excel file with columns: {*all_columns,}'})
+    @api.doc(params={
+        'file': f'Excel file with columns: {*all_columns,}',
+        'model_type': 'Model type',
+    })
     def put(self):
         args = upload_parser.parse_args()
+        model_type = args['model_type']
         data = pd.read_excel(args['file'])
         X, y = self.prepare_data(data)
+        model = create_model(model_type)
         model.fit(X, y)
-        joblib.dump(model, model_dir / 'model.pkl')
+        joblib.dump(model, model_dir / f'{model_type}.pkl')
         return 'Training successful'
 
     @staticmethod
@@ -57,15 +84,18 @@ class Train(Resource):
 @api.route('/predict', methods=['POST'])
 @api.expect(upload_parser)
 class Predict(Resource):
-    @api.doc(params={'file': f'Excel file with columns: {*feature_columns,}'})
+    @api.doc(params={
+        'file': f'Excel file with columns: {*feature_columns,}',
+        'model_type': 'Model type',
+    })
     def post(self):
-
-        model_fp = model_dir / 'model.pkl'
+        args = upload_parser.parse_args()
+        model_type = args['model_type']
+        model_fp = model_dir / f'{model_type}.pkl'
         if not model_fp.exists():
             return 400, "Model hasn't been fitted"
         model = joblib.load(model_fp)
 
-        args = upload_parser.parse_args()
         data = pd.read_excel(args['file'])
         X = data[feature_columns]
 
