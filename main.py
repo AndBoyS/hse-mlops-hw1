@@ -38,7 +38,8 @@ upload_parser.add_argument('model_params',
 val_error_code = 400
 
 
-@api.route('/train', methods=['PUT'])
+@api.route('/train', methods=['PUT'],
+           doc={'description': 'Train choosen model on part of the Titanic dataset, NaNs will be dropped'})
 @api.expect(upload_parser)
 class Train(Resource):
     @api.doc(params={
@@ -65,7 +66,8 @@ class Train(Resource):
         return f'Training successful on {X.shape[0]} samples'
 
 
-@api.route('/predict', methods=['POST'])
+@api.route('/predict', methods=['POST'],
+           doc={'description': 'Predict the data in excel format, NaNs in data will raise Validation Error'})
 @api.expect(upload_parser)
 class Predict(Resource):
     @api.doc(params={
@@ -91,7 +93,8 @@ class Predict(Resource):
         return {'prediction': pred.tolist()}
 
 
-@api.route('/models_list', methods=['GET'])
+@api.route('/models_list', methods=['GET'],
+           doc={'description': 'Get the list of saved trained models'})
 class ModelsList(Resource):
     @staticmethod
     def get():
@@ -108,6 +111,7 @@ def validate_and_prepare_data(file, train: bool = True
                               ) -> Union[Tuple[pd.DataFrame, pd.Series], pd.DataFrame]:
     """
     Проверяет файл с данными и возвращает их в формате pandas
+
     :param file:
     :param train:
     :return: X, y если train, X если not train
