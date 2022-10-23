@@ -88,6 +88,19 @@ class Predict(Resource):
         return {'prediction': pred.tolist()}
 
 
+@api.route('/models_list', methods=['GET'])
+class ModelsList(Resource):
+    @staticmethod
+    def get():
+        model_names = [fp.name.replace('.pkl', '') for fp in model_dir.glob('*.pkl')]
+        if not model_names:
+            model_names = None
+        else:
+            model_names = ', '.join(model_names)
+
+        return f'Trained models: {model_names}'
+
+
 if __name__ == '__main__':
     app.run(debug=True)
 
