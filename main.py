@@ -9,6 +9,7 @@ from werkzeug.datastructures import FileStorage
 
 import models
 
+
 app = Flask(__name__)
 api = Api(app)
 
@@ -29,6 +30,11 @@ upload_parser.add_argument('model_type',
                            choices=list(models.model_dict.keys()),
                            help='Bad choice: {error_msg}')
 
+upload_parser.add_argument('model_params',
+                           required=False,
+                           location='application/json',
+                           help='Bad choice: {error_msg}')
+
 
 @api.route('/train', methods=['PUT'])
 @api.expect(upload_parser)
@@ -36,13 +42,15 @@ class Train(Resource):
     @api.doc(params={
         'file': f'Excel file with columns: {*all_columns,}',
         'model_type': 'Model type',
+        'model_params': 'Model hyperparameters in json format, check sklearn documentation of each model to know possible values',
     })
     def put(self):
         args = upload_parser.parse_args()
         model_type = args['model_type']
+        model_params = args['model_params']
         data = pd.read_excel(args['file'])
         X, y = self.prepare_data(data)
-        model = models.create_model(model_type)
+        model = models.create_model(model_type, model_params)
         model.fit(X, y)
 
         joblib.dump(model, model_dir / f'{model_type}.pkl')
