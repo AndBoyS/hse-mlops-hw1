@@ -35,6 +35,8 @@ upload_parser.add_argument('model_params',
                            location='application/json',
                            help='Bad choice: {error_msg}')
 
+val_error_code = 400
+
 
 @api.route('/train', methods=['PUT'])
 @api.expect(upload_parser)
@@ -44,23 +46,23 @@ class Train(Resource):
         'model_type': 'Model type',
         'model_params': 'Model hyperparameters in json format, check sklearn documentation of each model to know possible values',
     })
+    @api.response(200, 'Success')
+    @api.response(val_error_code, 'Validation Error')
     def put(self):
         args = upload_parser.parse_args()
         model_type = args['model_type']
         model_params = args['model_params']
-        data = pd.read_excel(args['file'])
-        X, y = self.prepare_data(data)
+
+        try:
+            X, y = validate_and_prepare_data(args['file'], train=True)
+        except ValueError as e:
+            return val_error_code, str(e)
+
         model = models.create_model(model_type, model_params)
         model.fit(X, y)
 
         joblib.dump(model, model_dir / f'{model_type}.pkl')
         return f'Training successful on {X.shape[0]} samples'
-
-    @staticmethod
-    def prepare_data(df: pd.DataFrame,
-                     ) -> Tuple[pd.DataFrame, pd.Series]:
-        df = df[all_columns].dropna()
-        return df[feature_columns], df[target_column]
 
 
 @api.route('/predict', methods=['POST'])
@@ -70,19 +72,20 @@ class Predict(Resource):
         'file': f'Excel file with columns: {*feature_columns,}',
         'model_type': 'Model type',
     })
+    @api.response(200, 'Success')
+    @api.response(val_error_code, 'Validation Error')
     def post(self):
         args = upload_parser.parse_args()
         model_type = args['model_type']
         model_fp = model_dir / f'{model_type}.pkl'
         if not model_fp.exists():
-            return 400, "Model hasn't been fitted"
+            return val_error_code, "Model hasn't been fitted"
         model = joblib.load(model_fp)
 
-        data = pd.read_excel(args['file'])
-        X = data[feature_columns]
-
-        if X.isna().sum().sum():
-            return 400, 'Nans found in data'
+        try:
+            X = validate_and_prepare_data(args['file'], train=False)
+        except ValueError as e:
+            return val_error_code, str(e)
 
         pred = model.predict(X)
         return {'prediction': pred.tolist()}
@@ -99,6 +102,39 @@ class ModelsList(Resource):
             model_names = ', '.join(model_names)
 
         return f'Trained models: {model_names}'
+
+
+def validate_and_prepare_data(file, train: bool = True
+                              ) -> Union[Tuple[pd.DataFrame, pd.Series], pd.DataFrame]:
+    """
+    Проверяет файл с данными и возвращает их в формате pandas
+    :param file:
+    :param train:
+    :return: X, y если train, X если not train
+    """
+    try:
+        data = pd.read_excel(file)
+    except Exception as e:
+        raise ValueError(f"Couldn't read file: {e}")
+
+    needed_columns = feature_columns
+    if train:
+        needed_columns = all_columns
+
+    if not set(needed_columns).issubset(data.columns):
+        raise ValueError('Not all columns in data')
+
+    data = data[needed_columns]
+
+    if train:
+        data.dropna(inplace=True)
+        return data[feature_columns], data[target_column]
+
+    X = data[feature_columns]
+    if X.isna().sum().sum():
+        raise ValueError('Data contains NaNs')
+
+    return X
 
 
 if __name__ == '__main__':
