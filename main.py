@@ -2,15 +2,12 @@ from pathlib import Path
 from typing import *
 import pandas as pd
 import joblib
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import LinearSVC
-from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import make_pipeline
+
 from flask import Flask
 from flask_restx import Api, Resource
 from werkzeug.datastructures import FileStorage
 
+import models
 
 app = Flask(__name__)
 api = Api(app)
@@ -26,35 +23,11 @@ feature_columns = ['age', 'embarked', 'pclass', 'sex']
 target_column = 'survived'
 all_columns = feature_columns + [target_column]
 
-model_dict = {
-    'logistic_regression': LogisticRegression,
-    'svm': LinearSVC,
-}
-
 upload_parser.add_argument('model_type',
                            required=True,
                            location='args',
-                           choices=list(model_dict.keys()),
+                           choices=list(models.model_dict.keys()),
                            help='Bad choice: {error_msg}')
-
-
-def create_model(model_type: str):
-    """
-    Создать пайплайн модели
-
-    :param model_type: тип модели, logistic_regression или svm
-    :return:
-    """
-    assert model_type in model_dict
-
-    return make_pipeline(
-        ColumnTransformer([
-            ('ohe', OneHotEncoder(), ['pclass', 'embarked']),
-            ('binarizer', OrdinalEncoder(), ['sex'])
-            ],
-            remainder='passthrough'),
-        model_dict[model_type]()
-    )
 
 
 @api.route('/train', methods=['PUT'])
@@ -69,10 +42,11 @@ class Train(Resource):
         model_type = args['model_type']
         data = pd.read_excel(args['file'])
         X, y = self.prepare_data(data)
-        model = create_model(model_type)
+        model = models.create_model(model_type)
         model.fit(X, y)
+
         joblib.dump(model, model_dir / f'{model_type}.pkl')
-        return 'Training successful'
+        return f'Training successful on {X.shape[0]} samples'
 
     @staticmethod
     def prepare_data(df: pd.DataFrame,
