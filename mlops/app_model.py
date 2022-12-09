@@ -26,14 +26,14 @@ def fit(train_data: pd.DataFrame,
     return f'Training successful on {train_data.shape[0]} samples'
 
 
-def predict(train_data: pd.DataFrame, model_type: str) -> np.array:
+def predict(test_data: pd.DataFrame, model_type: str) -> np.array:
 
     model_fp = model_dir / f'{model_type}.pkl'
     if not model_fp.exists():
         return val_error_code, "Model hasn't been fitted"
     model = joblib.load(model_fp)
 
-    pred = model.predict(train_data)
+    pred = model.predict(test_data)
     return pred
 
 
@@ -46,10 +46,10 @@ def get_data(file: FileStorage, train: bool = True
     :return:
     """
     try:
-        train_data, train_target = data.validate_and_prepare_data(file, train=train)
+        res = data.validate_and_prepare_data(file, train=train)
     except ValueError as e:
         return val_error_code, str(e)
-    return train_data, train_target
+    return res
 
 
 def get_available_model_names() -> Optional[List[str]]:

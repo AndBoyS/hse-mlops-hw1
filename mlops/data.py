@@ -35,8 +35,8 @@ def validate_and_prepare_data(file, train: bool = True
         data.dropna(inplace=True)
         return data[feature_columns], data[target_column]
 
-    train_data = data[feature_columns]
-    if train_data.isna().sum().sum():
+    test_data = data[feature_columns]
+    if test_data.isna().sum().sum():
         raise ValueError('Data contains NaNs')
 
-    return train_data
+    return test_data
