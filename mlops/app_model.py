@@ -15,30 +15,30 @@ model_dir = Path('../models')
 model_dir.mkdir(exist_ok=True)
 
 
-def fit(X: pd.DataFrame,
-        y: pd.Series,
+def fit(train_data: pd.DataFrame,
+        train_target: pd.Series,
         model_type: str,
         model_params: dict) -> str:
     model = ml_models.create_model(model_type, model_params)
-    model.fit(X, y)
+    model.fit(train_data, train_target)
 
     joblib.dump(model, model_dir / f'{model_type}.pkl')
-    return f'Training successful on {X.shape[0]} samples'
+    return f'Training successful on {train_data.shape[0]} samples'
 
 
-def predict(X: pd.DataFrame, model_type: str) -> np.array:
+def predict(train_data: pd.DataFrame, model_type: str) -> np.array:
 
     model_fp = model_dir / f'{model_type}.pkl'
     if not model_fp.exists():
         return val_error_code, "Model hasn't been fitted"
     model = joblib.load(model_fp)
 
-    pred = model.predict(X)
+    pred = model.predict(train_data)
     return pred
 
 
 def get_data(file: FileStorage, train: bool = True
-             ) -> Union[Tuple[int, Exception], Tuple[pd.DataFrame, pd.Series]]:
+             ) -> Union[Tuple[int, str], Tuple[pd.DataFrame, pd.Series]]:
     """
     Подготовливает данные (data.validate_and_prepare_data) и при ошибке возвращает val_error_code и ошибку
     :param file:
@@ -46,10 +46,10 @@ def get_data(file: FileStorage, train: bool = True
     :return:
     """
     try:
-        X, y = data.validate_and_prepare_data(file, train=train)
+        train_data, train_target = data.validate_and_prepare_data(file, train=train)
     except ValueError as e:
         return val_error_code, str(e)
-    return X, y
+    return train_data, train_target
 
 
 def get_available_model_names() -> Optional[List[str]]:

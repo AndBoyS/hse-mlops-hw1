@@ -15,7 +15,7 @@ def validate_and_prepare_data(file, train: bool = True
 
     :param file:
     :param train:
-    :return: X, y если train, X если not train
+    :return: train_data, train_target если train, train_data если not train
     """
     try:
         data = pd.read_excel(file)
@@ -35,8 +35,8 @@ def validate_and_prepare_data(file, train: bool = True
         data.dropna(inplace=True)
         return data[feature_columns], data[target_column]
 
-    X = data[feature_columns]
-    if X.isna().sum().sum():
+    train_data = data[feature_columns]
+    if train_data.isna().sum().sum():
         raise ValueError('Data contains NaNs')
 
-    return X
+    return train_data

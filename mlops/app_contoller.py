@@ -36,9 +36,9 @@ class Train(Resource):
     def put(self):
         args = upload_parser.parse_args()
 
-        X, y = app_model.get_data(args['file'], train=True)
+        train_data, train_target = app_model.get_data(args['file'], train=True)
 
-        return app_model.fit(X, y,
+        return app_model.fit(train_data, train_target,
                              args['model_type'],
                              args['model_params'])
 
@@ -55,8 +55,8 @@ class Predict(Resource):
     @api.response(val_error_code, 'Validation Error')
     def post(self):
         args = upload_parser.parse_args()
-        X = app_model.get_data(args['file'], train=False)
-        pred = app_model.predict(X, args['model_type'])
+        train_data = app_model.get_data(args['file'], train=False)
+        pred = app_model.predict(train_data, args['model_type'])
         return {'prediction': pred.tolist()}
 
 
