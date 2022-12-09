@@ -11,6 +11,11 @@ model_dict = {
     'svm': LinearSVC,
 }
 
+default_params_dict = {
+    'logistic_regression': {'C': 1, 'max_iter': 100},
+    'svm': {'C': 1, 'kernel': 'rbf'},
+}
+
 
 def create_model(model_type: str,
                  model_params: Optional[Dict[str, Any]] = None
