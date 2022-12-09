@@ -1,13 +1,9 @@
-from pathlib import Path
-
-import joblib
-
 from flask import Flask
 from flask_restx import Api, Resource
 from werkzeug.datastructures import FileStorage
 
-from mlops import models, data
-
+from mlops import ml_models, data, app_model
+from mlops.error_protocol import val_error_code
 
 app = Flask(__name__)
 api = Api(app)
@@ -15,23 +11,15 @@ api = Api(app)
 upload_parser = api.parser()
 upload_parser.add_argument('file', location='files',
                            type=FileStorage, required=True)
-
-model_dir = Path('../models')
-model_dir.mkdir(exist_ok=True)
-
-
 upload_parser.add_argument('model_type',
                            required=True,
                            location='args',
-                           choices=list(models.model_dict.keys()),
+                           choices=list(ml_models.model_dict.keys()),
                            help='Bad choice: {error_msg}')
-
 upload_parser.add_argument('model_params',
                            required=False,
                            location='application/json',
                            help='Bad choice: {error_msg}')
-
-val_error_code = 400
 
 
 @api.route('/train', methods=['PUT'],
@@ -47,19 +35,12 @@ class Train(Resource):
     @api.response(val_error_code, 'Validation Error')
     def put(self):
         args = upload_parser.parse_args()
-        model_type = args['model_type']
-        model_params = args['model_params']
 
-        try:
-            X, y = data.validate_and_prepare_data(args['file'], train=True)
-        except ValueError as e:
-            return val_error_code, str(e)
+        X, y = app_model.get_data(args['file'], train=True)
 
-        model = models.create_model(model_type, model_params)
-        model.fit(X, y)
-
-        joblib.dump(model, model_dir / f'{model_type}.pkl')
-        return f'Training successful on {X.shape[0]} samples'
+        return app_model.fit(X, y,
+                             args['model_type'],
+                             args['model_params'])
 
 
 @api.route('/predict', methods=['POST'],
@@ -74,18 +55,8 @@ class Predict(Resource):
     @api.response(val_error_code, 'Validation Error')
     def post(self):
         args = upload_parser.parse_args()
-        model_type = args['model_type']
-        model_fp = model_dir / f'{model_type}.pkl'
-        if not model_fp.exists():
-            return val_error_code, "Model hasn't been fitted"
-        model = joblib.load(model_fp)
-
-        try:
-            X = data.validate_and_prepare_data(args['file'], train=False)
-        except ValueError as e:
-            return val_error_code, str(e)
-
-        pred = model.predict(X)
+        X = app_model.get_data(args['file'], train=False)
+        pred = app_model.predict(X, args['model_type'])
         return {'prediction': pred.tolist()}
 
 
@@ -94,17 +65,5 @@ class Predict(Resource):
 class ModelsList(Resource):
     @staticmethod
     def get():
-        model_names = [fp.name.replace('.pkl', '') for fp in model_dir.glob('*.pkl')]
-        if not model_names:
-            model_names = None
-        else:
-            model_names = ', '.join(model_names)
-
+        model_names = app_model.get_available_model_names()
         return f'Trained models: {model_names}'
-
-
-
-
-
-
-

@@ -1,4 +1,4 @@
-from mlops.app import app
+from mlops.app_contoller import app
 
 
 if __name__ == '__main__':
