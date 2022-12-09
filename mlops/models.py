@@ -1,4 +1,5 @@
-from typing import *
+from typing import Optional, Dict, Any
+
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
 from sklearn.preprocessing import OneHotEncoder, OrdinalEncoder
