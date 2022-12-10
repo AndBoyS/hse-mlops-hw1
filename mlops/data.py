@@ -1,15 +1,18 @@
+from pathlib import Path
 from typing import Union, Tuple
 
 import pandas as pd
-
+from werkzeug.datastructures import FileStorage
 
 feature_columns = ['age', 'embarked', 'pclass', 'sex']
 target_column = 'survived'
 all_columns = feature_columns + [target_column]
 
 
-def validate_and_prepare_data(file, train: bool = True
-                              ) -> Union[Tuple[pd.DataFrame, pd.Series], pd.DataFrame]:
+def validate_and_prepare_data(
+        file: Union[str, Path, FileStorage],
+        train: bool = True,
+        ) -> Union[Tuple[pd.DataFrame, pd.Series], pd.DataFrame]:
     """
     Проверяет файл с данными и возвращает их в формате pandas
 

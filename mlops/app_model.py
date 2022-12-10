@@ -31,7 +31,7 @@ def dict_to_str(d: dict) -> str:
 def fit(train_data: pd.DataFrame,
         train_target: pd.Series,
         model_type: str,
-        model_params: dict) -> str:
+        model_params: Optional[dict]) -> str:
     '''
     Обучает модель и сохраняет ее в model_dir/{model_type}_{params_str}.pkl
     '''
@@ -61,8 +61,10 @@ def predict(test_data: pd.DataFrame, model_name: str) -> np.array:
     return pred
 
 
-def get_data(file: FileStorage, train: bool = True
-             ) -> Union[Tuple[int, str], Tuple[pd.DataFrame, pd.Series], pd.DataFrame]:
+def get_data(
+        file: Union[str, Path, FileStorage],
+        train: bool = True,
+        ) -> Union[Tuple[int, str], Tuple[pd.DataFrame, pd.Series], pd.DataFrame]:
     """
     Подготовливает данные (data.validate_and_prepare_data) и при ошибке возвращает val_error_code и ошибку
     :param file:
