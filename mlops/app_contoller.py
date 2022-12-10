@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from flask import Flask
 from flask_restx import Api, Resource
 from werkzeug.datastructures import FileStorage
@@ -22,12 +24,15 @@ train_parser.add_argument('model_params',
                           location='application/json',
                           help='Bad choice: {error_msg}')
 
-predict_parser = api.parser()
-predict_parser.add_argument('file', location='files',
-                            type=FileStorage, required=True)
+predict_parser = deepcopy(train_parser)
+predict_parser.remove_argument('model_type')
+predict_parser.remove_argument('model_params')
 predict_parser.add_argument('model_name',
                             required=True,
                             location='args')
+
+delete_parser = deepcopy(predict_parser)
+delete_parser.remove_argument('file')
 
 
 @api.route('/train', methods=['PUT'],
@@ -75,3 +80,14 @@ class ModelsList(Resource):
     def get():
         model_names = app_model.get_available_model_names()
         return {'trained_models': model_names}
+
+
+@api.route('/remove_model', methods=['POST'],
+           doc={'description': 'Delete the trained model'})
+@api.expect(delete_parser)
+class RemoveModel(Resource):
+    @staticmethod
+    def post():
+        args = delete_parser.parse_args()
+        app_model.delete_model(args['model_name'])
+        return 'Model deleted'

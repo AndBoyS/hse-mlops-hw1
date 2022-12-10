@@ -90,3 +90,8 @@ def get_available_model_names() -> Optional[List[str]]:
         model_names = ', '.join(model_names)
 
     return model_names
+
+
+def delete_model(model_name: str):
+    model_fp = model_dir / f'{model_name}.pkl'
+    model_fp.unlink()

@@ -39,6 +39,10 @@ class MyTestCase(unittest.TestCase):
         pred = app_model.predict(test_data, self.model_name)
         self.assertEqual(pred.shape[0], test_data.shape[0])
 
+    def test_delete(self):
+        app_model.delete_model(self.model_name)
+        self.assertFalse(self.model_fp.exists())
+
 
 if __name__ == '__main__':
     unittest.main()
