@@ -3,7 +3,7 @@ from flask_restx import Api, Resource
 from werkzeug.datastructures import FileStorage
 
 from mlops import ml_models, data, app_model
-from mlops.error_protocol import val_error_code
+from mlops.error_protocol import val_error_code, success_code
 
 
 app = Flask(__name__)
@@ -39,7 +39,7 @@ class Train(Resource):
         'model_type': 'Model type',
         'model_params': 'Model hyperparameters in json format, check sklearn documentation of each model to know possible values',
     })
-    @api.response(200, 'Success')
+    @api.response(success_code, 'Success')
     @api.response(val_error_code, 'Validation Error')
     def put(self):
         args = train_parser.parse_args()
@@ -59,7 +59,7 @@ class Predict(Resource):
         'file': f'Excel file with columns: {*data.feature_columns,}',
         'model_name': 'Name of the model to predict with',
     })
-    @api.response(200, 'Success')
+    @api.response(success_code, 'Success')
     @api.response(val_error_code, 'Validation Error')
     def post(self):
         args = predict_parser.parse_args()
