@@ -1,11 +1,26 @@
 # hse-mlops-hw1
 HSE MLOps Homeworks
 
-Запуск flask сервера: 
+## Запуск flask сервера
 
-```angular2html
+Локально:
+
+```shell
 python main.py
 ```
+
+Через docker:
+
+```shell
+docker run -p 127.0.0.1:5000:5000 mementoor/hse-mlops:flask-bakhmatov
+```
+
+Через docker-compose:
+
+```shell
+docker compose up -d
+```
+
 
 ## Первое дз (до 23.10.2021)
 
